@@ -57,7 +57,7 @@ func TestEncryptFileMustReceiveFileToEncrypt(t *testing.T) {
 	request.ParseMultipartForm(32 << 20)
 
 	app := App{}
-	app.EncryptFile(writer, request)
+	app.Encrypt(writer, request)
 
 	assert.Equal(t, writer.Result().StatusCode, http.StatusBadRequest)
 
@@ -110,9 +110,9 @@ func TestCanEncryptUploadedFile(t *testing.T) {
 	}
 
 	app, _ := NewApp(key)
-	app.EncryptFile(response, request)
+	app.Encrypt(response, request)
 
-	decryptedText, err := app.decryptFileData(app.encryptFileData([]byte(fileText)))
+	decryptedText, err := app.decryptData(app.encryptData([]byte(fileText)))
 	if err != nil {
 		t.Fatal(err)
 	}

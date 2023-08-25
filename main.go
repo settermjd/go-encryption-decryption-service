@@ -55,12 +55,12 @@ func NewApp(keyPhrase []byte) (App, error) {
 	return app, nil
 }
 
-// encryptFileData encrypts text and returns it.
-func (a App) encryptFileData(plainText []byte) []byte {
+// encryptData encrypts/ciphers the text and returns it.
+func (a App) encryptData(plainText []byte) []byte {
 	return a.gcm.Seal(nil, a.nonce, plainText, nil)
 }
 
-func (a App) decryptFileData(cipheredText []byte) ([]byte, error) {
+func (a App) decryptData(cipheredText []byte) ([]byte, error) {
 	originalText, err := a.gcm.Open(nil, a.nonce, cipheredText, nil)
 	if err != nil {
 		return nil, fmt.Errorf("could not decrypt data. %v", err)
@@ -72,7 +72,7 @@ func (a App) decryptFileData(cipheredText []byte) ([]byte, error) {
 // request and encrypts the file using that encryption type, and returns it to
 // the client. Naturally, both arguments must be supplied, otherwise the
 // function cannot worklied, otherwise the function cannot work.
-func (a *App) EncryptFile(writer http.ResponseWriter, request *http.Request) {
+func (a *App) Encrypt(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 
 	file, fileHeader, err := request.FormFile("upload_file")
@@ -133,7 +133,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/encrypt", app.EncryptFile)
+	mux.HandleFunc("/encrypt", app.Encrypt)
 
 	log.Print("Starting server on :4000")
 	err = http.ListenAndServe(":4000", mux)
