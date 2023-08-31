@@ -50,12 +50,7 @@ func TestEncryptFileMustReceiveFileToEncrypt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer writer.Result().Body.Close()
-	body, err := io.ReadAll(writer.Result().Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	body = bytes.TrimSpace(body)
+	body := getBody(t, *writer.Result())
 	assert.Equal(t, string(body), string(expectedBody))
 }
 
@@ -95,12 +90,7 @@ func TestCanEncryptUploadedFile(t *testing.T) {
 
 	assert.Equal(t, response.Result().StatusCode, http.StatusOK)
 
-	defer response.Result().Body.Close()
-	body, err := io.ReadAll(response.Result().Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	body = bytes.TrimSpace(body)
+	body := getBody(t, *response.Result())
 	var result EncryptedResponse
 	err = json.Unmarshal(body, &result)
 	if err != nil {
@@ -139,13 +129,7 @@ func TestCanDecryptText(t *testing.T) {
 	assert.Equal(t, writer.Result().StatusCode, http.StatusOK)
 	assert.Equal(t, writer.Header().Get("Content-Type"), "text/plain; charset=utf-8")
 
-	defer writer.Result().Body.Close()
-	body, err := io.ReadAll(writer.Result().Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	body = bytes.TrimSpace(body)
-
+	body := getBody(t, *writer.Result())
 	expectedBody := "Here is the test data."
 	assert.Equal(t, string(body), string(expectedBody))
 }
@@ -214,11 +198,15 @@ func TestDecryptReturnsErrorWhenEncryptedTextCannotBeDecrypted(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	defer writer.Result().Body.Close()
-	body, err := io.ReadAll(writer.Result().Body)
+	body := getBody(t, *writer.Result())
+	assert.Equal(t, string(body), string(expectedBody))
+}
+
+func getBody(t *testing.T, response http.Response) []byte {
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
-	body = bytes.TrimSpace(body)
-	assert.Equal(t, string(body), string(expectedBody))
+	return bytes.TrimSpace(body)
 }
