@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -134,38 +133,18 @@ func (a *App) Encrypt(writer http.ResponseWriter, request *http.Request) {
 
 	writer.Header().Set("Content-Type", "application/json")
 
-	file, _, err := request.FormFile("upload_file")
-	if err != nil {
+	plainText := request.FormValue("data")
+	if plainText == "" {
 		writer.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(writer).Encode(Response{
 			Error:   true,
-			Message: `file could not be retrieved as none was supplied.`,
-		})
-
-		return
-	}
-	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, file); err != nil {
-		writer.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(writer).Encode(Response{
-			Error:   true,
-			Message: fmt.Sprintf("could not upload file. %v", err),
+			Message: `text to encrypt was not supplied in the request.`,
 		})
 
 		return
 	}
 
-	encryptedText := a.encryptData(buf.Bytes())
-	if err != nil {
-		writer.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(writer).Encode(Response{
-			Error:   true,
-			Message: fmt.Sprintf("could not encrypt file. %v", err),
-		})
-
-		return
-	}
-
+	encryptedText := a.encryptData([]byte(plainText))
 	writer.WriteHeader(http.StatusOK)
 	json.NewEncoder(writer).Encode(EncryptedResponse{
 		Text: encryptedText,

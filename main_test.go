@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -34,16 +33,14 @@ func marshalErrorResponse(isError bool, errorMessage string) (string, error) {
 	return string(expectedBody), nil
 }
 
-func TestEncryptFileMustReceiveFileToEncrypt(t *testing.T) {
-	// Initialize a new httptest.ResponseRecorder.
+func TestEncryptReturnsErrorWhenTextToEncryptIsNotSetInTheRequest(t *testing.T) {
 	writer := httptest.NewRecorder()
 
-	// Initialize a new dummy http.Request.
 	request, err := http.NewRequest(http.MethodPost, "/encrypt", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	request.ParseMultipartForm(32 << 20)
+	request.ParseForm()
 
 	app := App{}
 	app.Encrypt(writer, request)
@@ -52,7 +49,7 @@ func TestEncryptFileMustReceiveFileToEncrypt(t *testing.T) {
 
 	expectedBody, err := marshalErrorResponse(
 		true,
-		`file could not be retrieved as none was supplied.`,
+		`text to encrypt was not supplied in the request.`,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -62,39 +59,24 @@ func TestEncryptFileMustReceiveFileToEncrypt(t *testing.T) {
 	assert.Equal(t, string(body), string(expectedBody))
 }
 
-func TestCanEncryptUploadedFile(t *testing.T) {
-	pr, pw := io.Pipe()
-	writer := multipart.NewWriter(pw)
+func TestEncryptCanEncryptTextInRequestBody(t *testing.T) {
+	writer := httptest.NewRecorder()
+	plainText := "Here is the test data.\n"
 
-	fileText := "Here is the test data.\n"
-
-	go func() {
-		defer writer.Close()
-		// We create the form data field 'fileupload'
-		// which returns another writer to write the actual file
-		part, err := writer.CreateFormFile("upload_file", "test-file.txt")
-		if err != nil {
-			t.Error(err)
-		}
-		fmt.Fprint(part, fileText)
-	}()
-
-	response := httptest.NewRecorder()
-
-	request, err := http.NewRequest(http.MethodPost, "/encrypt", pr)
+	request, err := http.NewRequest(http.MethodPost, "/encrypt", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	request.ParseMultipartForm(32 << 20)
-	request.Header.Add("Content-Type", writer.FormDataContentType())
+	request.ParseForm()
+	request.Form.Set("data", plainText)
 
 	keyphrase := MakeKeyphrase(32)
 	app, _ := NewApp(keyphrase)
-	app.Encrypt(response, request)
+	app.Encrypt(writer, request)
 
-	assert.Equal(t, response.Result().StatusCode, http.StatusOK)
+	assert.Equal(t, writer.Result().StatusCode, http.StatusOK)
 
-	body := getResponseBody(t, *response.Result())
+	body := getResponseBody(t, *writer.Result())
 	var result EncryptedResponse
 	err = json.Unmarshal(body, &result)
 	if err != nil {
@@ -105,7 +87,7 @@ func TestCanEncryptUploadedFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, fileText, string(decryptedText))
+	assert.Equal(t, plainText, string(decryptedText))
 }
 
 func TestCanDecryptText(t *testing.T) {
