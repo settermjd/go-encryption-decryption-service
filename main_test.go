@@ -15,31 +15,12 @@ import (
 )
 
 func marshalErrorResponse(isError bool, errorMessage string) (string, error) {
-	expectedBody, err := json.Marshal(ErrorResponse{
+	expectedBody, err := json.Marshal(Response{
 		Error:   isError,
 		Message: errorMessage,
 	})
 	if err != nil {
 		return "", fmt.Errorf("Could not marshal expected response body. %v", err)
-	}
-
-	return string(expectedBody), nil
-}
-
-func marshalSuccessResponse(
-	originalText string,
-	originalTextLength int64,
-	encryptedText []byte,
-	encryptedTextLength int64,
-) (string, error) {
-	expectedBody, err := json.Marshal(SuccessResponse{
-		OriginalText:        originalText,
-		OriginalTextLength:  originalTextLength,
-		EncryptedText:       encryptedText,
-		EncryptedTextLength: encryptedTextLength,
-	})
-	if err != nil {
-		return "", fmt.Errorf("could not marshal expected response body. %v", err)
 	}
 
 	return string(expectedBody), nil
@@ -82,7 +63,7 @@ func TestCanEncryptUploadedFile(t *testing.T) {
 	pr, pw := io.Pipe()
 	writer := multipart.NewWriter(pw)
 
-	fileText := "Here is the test file.\n"
+	fileText := "Here is the test data.\n"
 
 	go func() {
 		defer writer.Close()
@@ -112,11 +93,6 @@ func TestCanEncryptUploadedFile(t *testing.T) {
 	app, _ := NewApp(key)
 	app.Encrypt(response, request)
 
-	decryptedText, err := app.decryptData(app.encryptData([]byte(fileText)))
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	assert.Equal(t, response.Result().StatusCode, http.StatusOK)
 
 	defer response.Result().Body.Close()
@@ -125,10 +101,124 @@ func TestCanEncryptUploadedFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	body = bytes.TrimSpace(body)
-	var successResponse SuccessResponse
-	err = json.Unmarshal(body, &successResponse)
+	var result EncryptedResponse
+	err = json.Unmarshal(body, &result)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, successResponse.OriginalText, string(decryptedText))
+
+	decryptedText, err := app.decryptData(result.Text)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, fileText, string(decryptedText))
+}
+
+func TestCanDecryptText(t *testing.T) {
+	writer := httptest.NewRecorder()
+
+	request, err := http.NewRequest(http.MethodPost, "/decrypt", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	request.ParseForm()
+
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		t.Fatal(err)
+	}
+
+	app, _ := NewApp(key)
+
+	encryptedText := app.encryptData([]byte("Here is the test data.\n"))
+	request.Form.Set("data", string(encryptedText))
+
+	app.Decrypt(writer, request)
+
+	assert.Equal(t, writer.Result().StatusCode, http.StatusOK)
+	assert.Equal(t, writer.Header().Get("Content-Type"), "text/plain; charset=utf-8")
+
+	defer writer.Result().Body.Close()
+	body, err := io.ReadAll(writer.Result().Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body = bytes.TrimSpace(body)
+
+	expectedBody := "Here is the test data."
+	assert.Equal(t, string(body), string(expectedBody))
+}
+
+func TestDecryptReturnsErrorWhenEncryptedTextIsNotInTheRequest(t *testing.T) {
+	writer := httptest.NewRecorder()
+
+	request, err := http.NewRequest(http.MethodPost, "/decrypt", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	request.ParseForm()
+
+	app := App{}
+	app.Decrypt(writer, request)
+
+	assert.Equal(t, writer.Result().StatusCode, http.StatusBadRequest)
+	assert.Equal(t, writer.Header().Get("Content-Type"), "application/json; charset=utf-8")
+
+	expectedBody, err := marshalErrorResponse(
+		true,
+		`Encrypted text was not supplied.`,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer writer.Result().Body.Close()
+	body, err := io.ReadAll(writer.Result().Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body = bytes.TrimSpace(body)
+	assert.Equal(t, string(body), string(expectedBody))
+}
+
+func TestDecryptReturnsErrorWhenEncryptedTextCannotBeDecrypted(t *testing.T) {
+	writer := httptest.NewRecorder()
+
+	request, err := http.NewRequest(http.MethodPost, "/decrypt", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		t.Fatal(err)
+	}
+
+	app, _ := NewApp(key)
+
+	request.ParseForm()
+	request.Form.Set("data", "Here is the test data.\n")
+
+	app.Decrypt(writer, request)
+
+	assert.Equal(t, writer.Result().StatusCode, http.StatusBadRequest)
+	assert.Equal(t, writer.Header().Get("Content-Type"), "application/json; charset=utf-8")
+
+	expectedBody, err := marshalErrorResponse(
+		true,
+		`could not decrypt data. cipher: message authentication failed`,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer writer.Result().Body.Close()
+	body, err := io.ReadAll(writer.Result().Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body = bytes.TrimSpace(body)
+	assert.Equal(t, string(body), string(expectedBody))
 }
