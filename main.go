@@ -131,8 +131,6 @@ func (a *App) Encrypt(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	writer.Header().Set("Content-Type", "application/json")
-
 	plainText := request.FormValue("data")
 	if plainText == "" {
 		writer.WriteHeader(http.StatusBadRequest)
@@ -145,10 +143,10 @@ func (a *App) Encrypt(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	encryptedText := a.encryptData([]byte(plainText))
+
 	writer.WriteHeader(http.StatusOK)
-	json.NewEncoder(writer).Encode(EncryptedResponse{
-		Text: encryptedText,
-	})
+	writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	io.WriteString(writer, string(encryptedText))
 }
 
 func main() {

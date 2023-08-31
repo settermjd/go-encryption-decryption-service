@@ -59,7 +59,7 @@ func TestEncryptReturnsErrorWhenTextToEncryptIsNotSetInTheRequest(t *testing.T) 
 	assert.Equal(t, string(body), string(expectedBody))
 }
 
-func TestEncryptCanEncryptTextInRequestBody(t *testing.T) {
+func TestCanEncryptTextInRequestBody(t *testing.T) {
 	writer := httptest.NewRecorder()
 	plainText := "Here is the test data.\n"
 
@@ -75,15 +75,10 @@ func TestEncryptCanEncryptTextInRequestBody(t *testing.T) {
 	app.Encrypt(writer, request)
 
 	assert.Equal(t, writer.Result().StatusCode, http.StatusOK)
+	assert.Equal(t, writer.Header().Get("Content-Type"), "text/plain; charset=utf-8")
 
 	body := getResponseBody(t, *writer.Result())
-	var result EncryptedResponse
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	decryptedText, err := app.decryptData(result.Text)
+	decryptedText, err := app.decryptData(body)
 	if err != nil {
 		t.Fatal(err)
 	}
