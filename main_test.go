@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -80,12 +79,8 @@ func TestCanEncryptUploadedFile(t *testing.T) {
 	request.ParseMultipartForm(32 << 20)
 	request.Header.Add("Content-Type", writer.FormDataContentType())
 
-	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
-		t.Fatal(err)
-	}
-
-	app, _ := NewApp(key)
+	keyphrase := MakeKeyphrase(32)
+	app, _ := NewApp(keyphrase)
 	app.Encrypt(response, request)
 
 	assert.Equal(t, response.Result().StatusCode, http.StatusOK)
@@ -114,12 +109,8 @@ func TestCanDecryptText(t *testing.T) {
 
 	request.ParseForm()
 
-	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
-		t.Fatal(err)
-	}
-
-	app, _ := NewApp(key)
+	keyphrase := MakeKeyphrase(32)
+	app, _ := NewApp(keyphrase)
 
 	encryptedText := app.encryptData([]byte("Here is the test data.\n"))
 	request.Form.Set("data", string(encryptedText))
@@ -175,12 +166,8 @@ func TestDecryptReturnsErrorWhenEncryptedTextCannotBeDecrypted(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	key := make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
-		t.Fatal(err)
-	}
-
-	app, _ := NewApp(key)
+	keyphrase := MakeKeyphrase(32)
+	app, _ := NewApp(keyphrase)
 
 	request.ParseForm()
 	request.Form.Set("data", "Here is the test data.\n")

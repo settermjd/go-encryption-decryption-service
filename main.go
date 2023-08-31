@@ -23,6 +23,15 @@ type EncryptedResponse struct {
 	Text []byte
 }
 
+func MakeKeyphrase(size int) []byte {
+	bytes := make([]byte, size)
+	if _, err := rand.Read(bytes); err != nil {
+		panic(err.Error())
+	}
+
+	return bytes
+}
+
 // App is a coordinating struct for the application. It stores the app's
 // keyphrase, nonce, and gsm so that they can be used throughout the
 // application, as required.
@@ -157,12 +166,8 @@ func main() {
 	}
 
 	// Generate a random 32 byte key for AES-256
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		panic(err.Error())
-	}
-
-	app, err := NewApp(bytes)
+	keyphrase := MakeKeyphrase(32)
+	app, err := NewApp(keyphrase)
 	if err != nil {
 		log.Fatal(err)
 	}
