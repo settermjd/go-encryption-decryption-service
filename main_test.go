@@ -197,3 +197,29 @@ func TestDecryptReturnsErrorWhenEncryptedTextCannotBeDecrypted(t *testing.T) {
 	body := getResponseBody(t, *writer.Result())
 	assert.Equal(t, string(body), string(expectedBody))
 }
+
+func TestDecryptReturnsMethodNotAllowedHeaderIfRequestMethodIsNotPost(t *testing.T) {
+	writer := httptest.NewRecorder()
+
+	request, err := http.NewRequest(http.MethodGet, "/decrypt", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	app := App{}
+	app.Decrypt(writer, request)
+	assert.Equal(t, writer.Result().StatusCode, http.StatusMethodNotAllowed)
+}
+
+func TestEncryptReturnsMethodNotAllowedHeaderIfRequestMethodIsNotPost(t *testing.T) {
+	writer := httptest.NewRecorder()
+
+	request, err := http.NewRequest(http.MethodGet, "/decrypt", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	app := App{}
+	app.Encrypt(writer, request)
+	assert.Equal(t, writer.Result().StatusCode, http.StatusMethodNotAllowed)
+}

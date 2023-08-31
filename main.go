@@ -89,6 +89,12 @@ func (a App) decryptData(cipheredText []byte) ([]byte, error) {
 // cannot be decrypted, then a JSON response is returned, indicating what went
 // wrong.
 func (a *App) Decrypt(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != "POST" {
+		writer.Header().Set("Allow", "POST")
+		http.Error(writer, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	encryptedData := request.FormValue("data")
 	if encryptedData == "" {
 		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -120,6 +126,12 @@ func (a *App) Decrypt(writer http.ResponseWriter, request *http.Request) {
 // the client. Naturally, both arguments must be supplied, otherwise the
 // function cannot worklied, otherwise the function cannot work.
 func (a *App) Encrypt(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != "POST" {
+		writer.Header().Set("Allow", "POST")
+		http.Error(writer, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	writer.Header().Set("Content-Type", "application/json")
 
 	file, _, err := request.FormFile("upload_file")
