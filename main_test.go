@@ -13,6 +13,15 @@ import (
 	"github.com/magiconair/properties/assert"
 )
 
+func getResponseBody(t *testing.T, response http.Response) []byte {
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return bytes.TrimSpace(body)
+}
+
 func marshalErrorResponse(isError bool, errorMessage string) (string, error) {
 	expectedBody, err := json.Marshal(Response{
 		Error:   isError,
@@ -49,7 +58,7 @@ func TestEncryptFileMustReceiveFileToEncrypt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	body := getBody(t, *writer.Result())
+	body := getResponseBody(t, *writer.Result())
 	assert.Equal(t, string(body), string(expectedBody))
 }
 
@@ -85,7 +94,7 @@ func TestCanEncryptUploadedFile(t *testing.T) {
 
 	assert.Equal(t, response.Result().StatusCode, http.StatusOK)
 
-	body := getBody(t, *response.Result())
+	body := getResponseBody(t, *response.Result())
 	var result EncryptedResponse
 	err = json.Unmarshal(body, &result)
 	if err != nil {
@@ -120,7 +129,7 @@ func TestCanDecryptText(t *testing.T) {
 	assert.Equal(t, writer.Result().StatusCode, http.StatusOK)
 	assert.Equal(t, writer.Header().Get("Content-Type"), "text/plain; charset=utf-8")
 
-	body := getBody(t, *writer.Result())
+	body := getResponseBody(t, *writer.Result())
 	expectedBody := "Here is the test data."
 	assert.Equal(t, string(body), string(expectedBody))
 }
@@ -185,15 +194,6 @@ func TestDecryptReturnsErrorWhenEncryptedTextCannotBeDecrypted(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	body := getBody(t, *writer.Result())
+	body := getResponseBody(t, *writer.Result())
 	assert.Equal(t, string(body), string(expectedBody))
-}
-
-func getBody(t *testing.T, response http.Response) []byte {
-	defer response.Body.Close()
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return bytes.TrimSpace(body)
 }
