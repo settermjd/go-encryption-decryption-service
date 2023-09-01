@@ -35,6 +35,29 @@ func marshalErrorResponse(isError bool, errorMessage string) (string, error) {
 	return string(expectedBody), nil
 }
 
+var infoLog, errorLog *log.Logger
+
+// setup gets called once for all defined test cases
+func setup() {
+	fmt.Println("Setting up test suite")
+	infoLog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	infoLog.SetOutput(io.Discard)
+	errorLog = log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+	errorLog.SetOutput(io.Discard)
+}
+
+// teardown gets called once for all defined test cases
+func teardown() {
+	fmt.Println("Tearing down test suite")
+}
+
+func TestMain(m *testing.M) {
+	setup()
+	exitCode := m.Run()
+	teardown()
+	os.Exit(exitCode)
+}
+
 func TestEncryptReturnsErrorWhenTextToEncryptIsNotSetInTheRequestOrIsEmpty(t *testing.T) {
 	writer := httptest.NewRecorder()
 
@@ -45,8 +68,6 @@ func TestEncryptReturnsErrorWhenTextToEncryptIsNotSetInTheRequestOrIsEmpty(t *te
 	request.ParseForm()
 
 	keyphrase := MakeKeyphrase(32)
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 	app, _ := NewApp(keyphrase, errorLog, infoLog)
 	app.Encrypt(writer, request)
 
@@ -76,8 +97,6 @@ func TestCanEncryptTextInRequestBody(t *testing.T) {
 	request.Form.Set("data", plainText)
 
 	keyphrase := MakeKeyphrase(32)
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 	app, _ := NewApp(keyphrase, errorLog, infoLog)
 	app.Encrypt(writer, request)
 
@@ -103,8 +122,6 @@ func TestCanDecryptText(t *testing.T) {
 	request.ParseForm()
 
 	keyphrase := MakeKeyphrase(32)
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 	app, _ := NewApp(keyphrase, errorLog, infoLog)
 
 	encryptedText := app.encryptData([]byte("Here is the test data.\n"))
@@ -131,8 +148,6 @@ func TestDecryptReturnsErrorWhenEncryptedTextIsNotInTheRequestOrWasEmpty(t *test
 	request.ParseForm()
 
 	keyphrase := MakeKeyphrase(32)
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 	app, _ := NewApp(keyphrase, errorLog, infoLog)
 	app.Decrypt(writer, request)
 
@@ -165,8 +180,6 @@ func TestDecryptReturnsErrorWhenEncryptedTextCannotBeDecrypted(t *testing.T) {
 	}
 
 	keyphrase := MakeKeyphrase(32)
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 	app, _ := NewApp(keyphrase, errorLog, infoLog)
 
 	request.ParseForm()
