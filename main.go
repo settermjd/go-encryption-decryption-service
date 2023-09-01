@@ -161,12 +161,12 @@ func secureHeaders(next http.Handler) http.Handler {
 	})
 }
 
-func (a *App) routes() *http.ServeMux {
+func (a *App) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/encrypt", a.Encrypt)
 	mux.HandleFunc("/decrypt", a.Decrypt)
 
-	return mux
+	return secureHeaders(mux)
 }
 
 func main() {
