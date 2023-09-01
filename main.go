@@ -150,6 +150,7 @@ func (a *App) Encrypt(writer http.ResponseWriter, request *http.Request) {
 	io.WriteString(writer, string(encryptedText))
 }
 
+// secureHeaders adds the minimum required headers to a request
 func secureHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Security-Policy", "default-src 'self';")
