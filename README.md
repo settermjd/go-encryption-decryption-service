@@ -1,4 +1,5 @@
 # Go Encryption and Decryption API
+![Build and Test workflow](https://github.com/settermjd/go-encryption-decryption-service/actions/workflows/go.yml/badge.svg)
 
 This is a small Go API which encrypts and decrypts a text string.
 
