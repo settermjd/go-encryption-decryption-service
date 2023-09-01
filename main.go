@@ -151,13 +151,13 @@ func (a *App) Encrypt(writer http.ResponseWriter, request *http.Request) {
 }
 
 func secureHeaders(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Security-Policy", "default-src 'self';")
-		w.Header().Set("Referrer-Policy", "origin-when-cross-origin")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "deny")
-		w.Header().Set("X-XSS-Protection", "0")
-		next.ServeHTTP(w, r)
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Security-Policy", "default-src 'self';")
+		writer.Header().Set("Referrer-Policy", "origin-when-cross-origin")
+		writer.Header().Set("X-Content-Type-Options", "nosniff")
+		writer.Header().Set("X-Frame-Options", "deny")
+		writer.Header().Set("X-XSS-Protection", "0")
+		next.ServeHTTP(writer, request)
 	})
 }
 
