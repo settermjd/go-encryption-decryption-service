@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -149,6 +150,15 @@ func (a *App) Encrypt(writer http.ResponseWriter, request *http.Request) {
 	io.WriteString(writer, string(encryptedText))
 }
 
+
+func (a *App) routes() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/encrypt", a.Encrypt)
+	mux.HandleFunc("/decrypt", a.Decrypt)
+
+	return mux
+}
+
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Print("No .env file found.")
@@ -161,11 +171,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/encrypt", app.Encrypt)
-	mux.HandleFunc("/decrypt", app.Decrypt)
+	addr := flag.String("addr", ":4000", "HTTP network address")
+	srv := &http.Server{
+		Addr:    *addr,
+		Handler: app.routes(),
+	}
 
-	log.Print("Starting server on :4000")
-	err = http.ListenAndServe(":4000", mux)
+	log.Printf("Starting server on %s", *addr)
+	err = srv.ListenAndServe()
 	log.Fatal(err)
 }
