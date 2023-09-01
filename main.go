@@ -161,12 +161,22 @@ func secureHeaders(next http.Handler) http.Handler {
 	})
 }
 
+// logRequest logs the route being requested
+func logRequest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		log.Printf("Request made to %s route.", request.RequestURI)
+		next.ServeHTTP(writer, request)
+	})
+}
+
 func (a *App) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/encrypt", a.Encrypt)
 	mux.HandleFunc("/decrypt", a.Decrypt)
 
-	return secureHeaders(mux)
+	return logRequest(
+		secureHeaders(mux),
+	)
 }
 
 func main() {
