@@ -101,7 +101,7 @@ func (a *App) Decrypt(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(writer).Encode(Response{
 			Error:   true,
-			Message: "Encrypted text was not supplied.",
+			Message: "Encrypted text was not supplied or was empty.",
 		})
 
 		return
@@ -137,7 +137,7 @@ func (a *App) Encrypt(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(writer).Encode(Response{
 			Error:   true,
-			Message: `text to encrypt was not supplied in the request.`,
+			Message: `text to encrypt was not supplied in the request or was empty.`,
 		})
 
 		return

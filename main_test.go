@@ -33,7 +33,7 @@ func marshalErrorResponse(isError bool, errorMessage string) (string, error) {
 	return string(expectedBody), nil
 }
 
-func TestEncryptReturnsErrorWhenTextToEncryptIsNotSetInTheRequest(t *testing.T) {
+func TestEncryptReturnsErrorWhenTextToEncryptIsNotSetInTheRequestOrIsEmpty(t *testing.T) {
 	writer := httptest.NewRecorder()
 
 	request, err := http.NewRequest(http.MethodPost, "/encrypt", nil)
@@ -49,7 +49,7 @@ func TestEncryptReturnsErrorWhenTextToEncryptIsNotSetInTheRequest(t *testing.T) 
 
 	expectedBody, err := marshalErrorResponse(
 		true,
-		`text to encrypt was not supplied in the request.`,
+		`text to encrypt was not supplied in the request or was empty.`,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -111,7 +111,7 @@ func TestCanDecryptText(t *testing.T) {
 	assert.Equal(t, string(body), string(expectedBody))
 }
 
-func TestDecryptReturnsErrorWhenEncryptedTextIsNotInTheRequest(t *testing.T) {
+func TestDecryptReturnsErrorWhenEncryptedTextIsNotInTheRequestOrWasEmpty(t *testing.T) {
 	writer := httptest.NewRecorder()
 
 	request, err := http.NewRequest(http.MethodPost, "/decrypt", nil)
@@ -129,7 +129,7 @@ func TestDecryptReturnsErrorWhenEncryptedTextIsNotInTheRequest(t *testing.T) {
 
 	expectedBody, err := marshalErrorResponse(
 		true,
-		`Encrypted text was not supplied.`,
+		`Encrypted text was not supplied or was empty.`,
 	)
 	if err != nil {
 		t.Fatal(err)
