@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/joho/godotenv"
 )
@@ -36,14 +37,19 @@ func MakeKeyphrase(size int) []byte {
 // keyphrase, nonce, and gsm so that they can be used throughout the
 // application, as required.
 type App struct {
-	key, nonce []byte
+	errorLog   *log.Logger
 	gcm        cipher.AEAD
+	infoLog    *log.Logger
+	key, nonce []byte
 }
 
 // NewApp instantiates a new App struct/object with the application's keyphrase,
 // nonce and gcm instance
-func NewApp(keyPhrase []byte) (App, error) {
-	app := App{}
+func NewApp(keyPhrase []byte, errorLog *log.Logger, infoLog *log.Logger) (App, error) {
+	app := App{
+		errorLog: errorLog,
+		infoLog:  infoLog,
+	}
 	aesBlock, err := aes.NewCipher(keyPhrase)
 	if err != nil {
 		return app, fmt.Errorf("could not generate cipher. %v", err)
@@ -104,6 +110,8 @@ func (a *App) Decrypt(writer http.ResponseWriter, request *http.Request) {
 			Message: "Encrypted text was not supplied or was empty.",
 		})
 
+		a.errorLog.Println("Encrypted text was not supplied or was empty.")
+
 		return
 	}
 
@@ -118,6 +126,9 @@ func (a *App) Decrypt(writer http.ResponseWriter, request *http.Request) {
 
 		return
 	}
+
+	a.infoLog.Printf("Successfully decrypted the encrypted text (%s)", decryptedData)
+
 	writer.Write(decryptedData)
 }
 
@@ -140,10 +151,14 @@ func (a *App) Encrypt(writer http.ResponseWriter, request *http.Request) {
 			Message: `text to encrypt was not supplied in the request or was empty.`,
 		})
 
+		a.errorLog.Println("Text to encrypt was not supplied in the request or was empty.")
+
 		return
 	}
 
 	encryptedText := a.encryptData([]byte(plainText))
+
+	a.infoLog.Printf("Successfully encrypted [\"%s\"]", plainText)
 
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -185,20 +200,24 @@ func main() {
 		log.Print("No .env file found.")
 	}
 
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
 	// Generate a random 32 byte key for AES-256
 	keyphrase := MakeKeyphrase(32)
-	app, err := NewApp(keyphrase)
+	app, err := NewApp(keyphrase, errorLog, infoLog)
 	if err != nil {
-		log.Fatal(err)
+		errorLog.Fatal(err)
 	}
 
 	addr := flag.String("addr", ":4000", "HTTP network address")
 	srv := &http.Server{
-		Addr:    *addr,
-		Handler: app.routes(),
+		Addr:     *addr,
+		ErrorLog: errorLog,
+		Handler:  app.routes(),
 	}
 
-	log.Printf("Starting server on %s", *addr)
+	infoLog.Printf("Starting server on %s", *addr)
 	err = srv.ListenAndServe()
-	log.Fatal(err)
+	errorLog.Fatal(err)
 }
