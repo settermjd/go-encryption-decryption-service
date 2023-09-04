@@ -103,7 +103,7 @@ func TestCanEncryptTextInRequestBody(t *testing.T) {
 	assert.Equal(t, writer.Header().Get("Content-Type"), "text/plain; charset=utf-8")
 
 	body := getResponseBody(t, *writer.Result())
-	decryptedText, err := app.DecryptData(body)
+	decryptedText, err := e.DecryptData(body, app.Gcm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,11 @@ func TestCanDecryptText(t *testing.T) {
 
 	app, _ := e.NewApp(e.MakeKeyphrase(32), errorLog, infoLog)
 
-	encryptedText := app.EncryptData([]byte("Here is the test data.\n"))
+	encryptedText := e.EncryptData(
+		[]byte("Here is the test data.\n"),
+		app.Gcm,
+		app.Nonce,
+	)
 	request.Form.Set("data", string(encryptedText))
 
 	app.Decrypt(writer, request)

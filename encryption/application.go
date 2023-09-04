@@ -17,9 +17,9 @@ import (
 // application, as required.
 type App struct {
 	errorLog   *log.Logger
-	gcm        cipher.AEAD
+	Gcm        cipher.AEAD
 	infoLog    *log.Logger
-	key, nonce []byte
+	key, Nonce []byte
 }
 
 // NewApp instantiates a new App struct/object with the application's keyphrase,
@@ -46,27 +46,10 @@ func NewApp(keyPhrase []byte, errorLog *log.Logger, infoLog *log.Logger) (App, e
 	}
 
 	app.key = keyPhrase
-	app.nonce = nonce
-	app.gcm = gcmInstance
+	app.Nonce = nonce
+	app.Gcm = gcmInstance
 
 	return app, nil
-}
-
-// EncryptData encrypts/ciphers the text and returns it.
-func (app App) EncryptData(plainText []byte) []byte {
-	return app.gcm.Seal(app.nonce, app.nonce, plainText, nil)
-}
-
-// DecryptData decrypts/deciphers the data in cipheredText and returns it,
-// or the error that occurred while doing so.
-func (app App) DecryptData(cipheredText []byte) ([]byte, error) {
-	nonce := cipheredText[:app.gcm.NonceSize()]
-	cipheredText = cipheredText[app.gcm.NonceSize():]
-	originalText, err := app.gcm.Open(nil, nonce, cipheredText, nil)
-	if err != nil {
-		return nil, fmt.Errorf("could not decrypt data. %v", err)
-	}
-	return originalText, nil
 }
 
 // Decrypt retrieves ciphered/encrypted text from the request, decrypts it, and
@@ -94,7 +77,7 @@ func (app *App) Decrypt(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	decryptedData, err := app.DecryptData([]byte(encryptedData))
+	decryptedData, err := DecryptData([]byte(encryptedData), app.Gcm)
 	if err != nil {
 		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 		writer.WriteHeader(http.StatusBadRequest)
@@ -135,7 +118,7 @@ func (app *App) Encrypt(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	encryptedText := app.EncryptData([]byte(plainText))
+	encryptedText := EncryptData([]byte(plainText), app.Gcm, app.Nonce)
 
 	app.infoLog.Printf("Successfully encrypted [\"%s\"]", plainText)
 
