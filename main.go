@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encryption-decryption-service/encryption"
+	enc "encryption-decryption-service/encryption"
 	"flag"
 	"log"
 	"net/http"
@@ -19,8 +19,8 @@ func main() {
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
 	// Generate a random 32 byte key for AES-256
-	keyphrase := encryption.MakeKeyphrase(32)
-	app, err := encryption.NewApp(keyphrase, errorLog, infoLog)
+	keyphrase := enc.MakeKeyphrase(32)
+	app, err := enc.NewApp(keyphrase, errorLog, infoLog)
 	if err != nil {
 		errorLog.Fatal(err)
 	}
