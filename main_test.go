@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	e "encryption-decryption-service/encryption"
 	"fmt"
 	"io"
 	"log"
@@ -24,7 +25,7 @@ func getResponseBody(t *testing.T, response http.Response) []byte {
 }
 
 func marshalErrorResponse(isError bool, errorMessage string) (string, error) {
-	expectedBody, err := json.Marshal(Response{
+	expectedBody, err := json.Marshal(e.Response{
 		Error:   isError,
 		Message: errorMessage,
 	})
@@ -67,8 +68,8 @@ func TestEncryptReturnsErrorWhenTextToEncryptIsNotSetInTheRequestOrIsEmpty(t *te
 	}
 	request.ParseForm()
 
-	keyphrase := MakeKeyphrase(32)
-	app, _ := NewApp(keyphrase, errorLog, infoLog)
+	keyphrase := e.MakeKeyphrase(32)
+	app, _ := e.NewApp(keyphrase, errorLog, infoLog)
 	app.Encrypt(writer, request)
 
 	assert.Equal(t, writer.Result().StatusCode, http.StatusBadRequest)
@@ -96,15 +97,15 @@ func TestCanEncryptTextInRequestBody(t *testing.T) {
 	request.ParseForm()
 	request.Form.Set("data", plainText)
 
-	keyphrase := MakeKeyphrase(32)
-	app, _ := NewApp(keyphrase, errorLog, infoLog)
+	keyphrase := e.MakeKeyphrase(32)
+	app, _ := e.NewApp(keyphrase, errorLog, infoLog)
 	app.Encrypt(writer, request)
 
 	assert.Equal(t, writer.Result().StatusCode, http.StatusOK)
 	assert.Equal(t, writer.Header().Get("Content-Type"), "text/plain; charset=utf-8")
 
 	body := getResponseBody(t, *writer.Result())
-	decryptedText, err := app.decryptData(body)
+	decryptedText, err := app.DecryptData(body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,10 +122,10 @@ func TestCanDecryptText(t *testing.T) {
 
 	request.ParseForm()
 
-	keyphrase := MakeKeyphrase(32)
-	app, _ := NewApp(keyphrase, errorLog, infoLog)
+	keyphrase := e.MakeKeyphrase(32)
+	app, _ := e.NewApp(keyphrase, errorLog, infoLog)
 
-	encryptedText := app.encryptData([]byte("Here is the test data.\n"))
+	encryptedText := app.EncryptData([]byte("Here is the test data.\n"))
 	request.Form.Set("data", string(encryptedText))
 
 	app.Decrypt(writer, request)
@@ -147,8 +148,8 @@ func TestDecryptReturnsErrorWhenEncryptedTextIsNotInTheRequestOrWasEmpty(t *test
 
 	request.ParseForm()
 
-	keyphrase := MakeKeyphrase(32)
-	app, _ := NewApp(keyphrase, errorLog, infoLog)
+	keyphrase := e.MakeKeyphrase(32)
+	app, _ := e.NewApp(keyphrase, errorLog, infoLog)
 	app.Decrypt(writer, request)
 
 	assert.Equal(t, writer.Result().StatusCode, http.StatusBadRequest)
@@ -179,8 +180,8 @@ func TestDecryptReturnsErrorWhenEncryptedTextCannotBeDecrypted(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	keyphrase := MakeKeyphrase(32)
-	app, _ := NewApp(keyphrase, errorLog, infoLog)
+	keyphrase := e.MakeKeyphrase(32)
+	app, _ := e.NewApp(keyphrase, errorLog, infoLog)
 
 	request.ParseForm()
 	request.Form.Set("data", "Here is the test data.\n")
@@ -210,7 +211,7 @@ func TestDecryptReturnsMethodNotAllowedHeaderIfRequestMethodIsNotPost(t *testing
 		t.Fatal(err)
 	}
 
-	app := App{}
+	app := e.App{}
 	app.Decrypt(writer, request)
 	assert.Equal(t, writer.Result().StatusCode, http.StatusMethodNotAllowed)
 }
@@ -223,7 +224,7 @@ func TestEncryptReturnsMethodNotAllowedHeaderIfRequestMethodIsNotPost(t *testing
 		t.Fatal(err)
 	}
 
-	app := App{}
+	app := e.App{}
 	app.Encrypt(writer, request)
 	assert.Equal(t, writer.Result().StatusCode, http.StatusMethodNotAllowed)
 }
