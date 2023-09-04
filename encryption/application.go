@@ -158,7 +158,3 @@ type Response struct {
 	Error   bool
 	Message string
 }
-
-type EncryptedResponse struct {
-	Text []byte
-}
