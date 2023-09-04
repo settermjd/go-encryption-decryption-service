@@ -144,6 +144,7 @@ func (app *App) Encrypt(writer http.ResponseWriter, request *http.Request) {
 	io.WriteString(writer, string(encryptedText))
 }
 
+// Routes provides the application's routing table
 func (a *App) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/encrypt", a.Encrypt)
@@ -154,6 +155,7 @@ func (a *App) Routes() http.Handler {
 	)
 }
 
+// Response is a small struct to return a simplistic response from the application
 type Response struct {
 	Error   bool
 	Message string
