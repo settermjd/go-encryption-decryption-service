@@ -68,8 +68,7 @@ func TestEncryptReturnsErrorWhenTextToEncryptIsNotSetInTheRequestOrIsEmpty(t *te
 	}
 	request.ParseForm()
 
-	keyphrase := e.MakeKeyphrase(32)
-	app, _ := e.NewApp(keyphrase, errorLog, infoLog)
+	app, _ := e.NewApp(e.MakeKeyphrase(32), errorLog, infoLog)
 	app.Encrypt(writer, request)
 
 	assert.Equal(t, writer.Result().StatusCode, http.StatusBadRequest)
@@ -97,8 +96,7 @@ func TestCanEncryptTextInRequestBody(t *testing.T) {
 	request.ParseForm()
 	request.Form.Set("data", plainText)
 
-	keyphrase := e.MakeKeyphrase(32)
-	app, _ := e.NewApp(keyphrase, errorLog, infoLog)
+	app, _ := e.NewApp(e.MakeKeyphrase(32), errorLog, infoLog)
 	app.Encrypt(writer, request)
 
 	assert.Equal(t, writer.Result().StatusCode, http.StatusOK)
@@ -122,8 +120,7 @@ func TestCanDecryptText(t *testing.T) {
 
 	request.ParseForm()
 
-	keyphrase := e.MakeKeyphrase(32)
-	app, _ := e.NewApp(keyphrase, errorLog, infoLog)
+	app, _ := e.NewApp(e.MakeKeyphrase(32), errorLog, infoLog)
 
 	encryptedText := app.EncryptData([]byte("Here is the test data.\n"))
 	request.Form.Set("data", string(encryptedText))
@@ -148,8 +145,7 @@ func TestDecryptReturnsErrorWhenEncryptedTextIsNotInTheRequestOrWasEmpty(t *test
 
 	request.ParseForm()
 
-	keyphrase := e.MakeKeyphrase(32)
-	app, _ := e.NewApp(keyphrase, errorLog, infoLog)
+	app, _ := e.NewApp(e.MakeKeyphrase(32), errorLog, infoLog)
 	app.Decrypt(writer, request)
 
 	assert.Equal(t, writer.Result().StatusCode, http.StatusBadRequest)
@@ -180,8 +176,7 @@ func TestDecryptReturnsErrorWhenEncryptedTextCannotBeDecrypted(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	keyphrase := e.MakeKeyphrase(32)
-	app, _ := e.NewApp(keyphrase, errorLog, infoLog)
+	app, _ := e.NewApp(e.MakeKeyphrase(32), errorLog, infoLog)
 
 	request.ParseForm()
 	request.Form.Set("data", "Here is the test data.\n")
